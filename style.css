@@ -1,0 +1,138 @@
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    background: #171923;
+    color: #eee4d0;
+    font-family: Georgia, serif;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 900px;
+    min-height: 600px;
+    padding: 30px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background:
+        radial-gradient(circle, #35303a, #171923 75%);
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    text-align: center;
+}
+
+.screen.active {
+    display: block;
+}
+
+.subtitle {
+    color: #c6a36b;
+    letter-spacing: 5px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: clamp(48px, 12vw, 100px);
+    letter-spacing: 12px;
+    color: #e5c58d;
+    text-shadow: 0 0 25px #a16b37;
+}
+
+.description {
+    color: #aaa4a0;
+    margin: 15px 0 45px;
+    font-style: italic;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.menu-button {
+    width: 260px;
+    max-width: 100%;
+    padding: 15px;
+
+    border: 1px solid #756044;
+    background: #292833;
+    color: #eee4d0;
+
+    font-family: Georgia, serif;
+    font-size: 16px;
+
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.menu-button:hover {
+    background: #51402e;
+    border-color: #d1ad73;
+    transform: scale(1.03);
+}
+
+.menu-button.primary {
+    background: #62472d;
+    border-color: #c6a36b;
+}
+
+
+.footer {
+    margin-top: 60px;
+    color: #a18b70;
+    font-size: 12px;
+    letter-spacing: 2px;
+
+    animation: darkGlow 4s ease-in-out infinite;
+}
+
+@keyframes darkGlow {
+    0%, 100% {
+        opacity: 0.45;
+        text-shadow: 0 0 2px #a18b70;
+    }
+
+    50% {
+        opacity: 1;
+        text-shadow: 0 0 12px #c6a36b;
+    }
+}
+
+
+h2 {
+    color: #e5c58d;
+    margin-bottom: 25px;
+}
+
+.screen p {
+    margin-bottom: 25px;
+}
+
+@media (max-width: 600px) {
+    .game-container {
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    h1 {
+        letter-spacing: 6px;
+    }
+}
