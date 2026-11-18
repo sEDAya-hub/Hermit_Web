@@ -7,6 +7,8 @@
 
 body {
     min-height: 100vh;
+    min-height: 100svh;
+
     background: #171923;
     color: #eee4d0;
     font-family: Georgia, serif;
@@ -18,9 +20,12 @@ body {
 
 .game-container {
     width: 100%;
-    max-width: 900px;
-    min-height: 600px;
-    padding: 30px;
+    max-width: 1100px;
+
+    min-height: 100vh;
+    min-height: 100svh;
+
+    padding: clamp(16px, 3vw, 30px);
 
     display: flex;
     justify-content: center;
@@ -29,7 +34,6 @@ body {
     background:
         radial-gradient(circle, #35303a, #171923 75%);
 }
-
 .screen {
     display: none;
     width: 100%;
@@ -135,4 +139,390 @@ h2 {
     h1 {
         letter-spacing: 6px;
     }
+}
+
+/* Игровое поле */
+
+.game-stage {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+
+    aspect-ratio: 16 / 9;
+
+    margin: 20px auto;
+
+    background: #101318;
+    border: 1px solid #756044;
+
+    overflow: hidden;
+}
+
+/* Холст игры */
+
+#game-canvas {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    touch-action: none;
+}
+
+/* Мобильные экраны */
+
+@media (max-width: 700px) {
+
+    body {
+        align-items: stretch;
+    }
+
+    .game-container {
+        max-width: none;
+
+        padding:
+            max(12px, env(safe-area-inset-top))
+            max(12px, env(safe-area-inset-right))
+            max(12px, env(safe-area-inset-bottom))
+            max(12px, env(safe-area-inset-left));
+    }
+
+    .game-stage {
+        margin: 12px auto;
+    }
+
+    .menu-button {
+        max-width: 100%;
+    }
+
+}
+
+/* ==================================
+   ОКНО ПОРАЖЕНИЯ
+================================== */
+
+.death-overlay {
+    display: none;
+
+    position: absolute;
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.65);
+
+    justify-content: center;
+    align-items: center;
+
+    z-index: 10;
+}
+
+.death-overlay.active {
+    display: flex;
+}
+
+.death-window {
+    width: 90%;
+    max-width: 420px;
+
+    padding: 35px 25px;
+
+    background: rgba(25, 27, 34, 0.95);
+
+    border: 1px solid #9b7548;
+
+    text-align: center;
+
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.8);
+}
+
+.death-window h2 {
+    color: #d9b77c;
+    font-size: 28px;
+    margin-bottom: 15px;
+}
+
+.death-window p {
+    color: #aaa4a0;
+    margin-bottom: 30px;
+    font-style: italic;
+}
+
+.death-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ==================================
+   ИНВЕНТАРЬ
+================================== */
+
+.inventory-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 20;
+}
+
+.inventory-overlay.active {
+    display: flex;
+}
+
+/* Основное окно */
+
+.inventory-window {
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 25px;
+    background: #20252b;
+    border: 2px solid #9b7548;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.8);
+}
+
+/* Заголовок */
+
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #9b7548;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.inventory-header h2 {
+    color: #d9b77c;
+    margin: 0;
+}
+
+#close-inventory {
+    background: #382b2b;
+    color: #d9b77c;
+    border: 1px solid #9b7548;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+/* Содержимое */
+
+.inventory-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+}
+
+.inventory-content h3 {
+    color: #d9b77c;
+    margin-bottom: 15px;
+}
+
+/* Сетка предметов */
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* Ячейки */
+
+.inventory-slot {
+    aspect-ratio: 1 / 1;
+    background: #18232b;
+    border: 1px solid #66533d;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    font-size: 28px;
+    color: #d9b77c;
+}
+
+.inventory-slot span {
+    font-size: 28px;
+}
+
+.inventory-slot small {
+    position: absolute;
+    bottom: 4px;
+    right: 6px;
+    font-size: 13px;
+    color: #ffffff;
+}
+
+/* Экипировка */
+
+.inventory-equipment {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.inventory-equipment .inventory-slot {
+    max-width: 65px;
+}
+
+/* Адаптация для телефона */
+
+@media (max-width: 600px) {
+
+    .inventory-window {
+        padding: 15px;
+    }
+
+    .inventory-content {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+}
+
+/* Кнопка использования предмета */
+#use-potion {
+    display: none;
+    margin-top: 15px;
+}
+
+#use-potion.visible {
+    display: block;
+}
+
+/* Выбранный предмет */
+.inventory-slot.selected {
+    border: 2px solid #d9b77c;
+    background: #35404a;
+    box-shadow: 0 0 12px rgba(217, 183, 124, 0.4);
+    cursor: pointer;
+}
+
+/* ==================================
+   МОБИЛЬНОЕ УПРАВЛЕНИЕ
+================================== */
+
+#mobile-controls {
+    display: none;
+    position: absolute;
+    inset: 0;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 20px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Группы кнопок */
+
+.mobile-movement,
+.mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+/* Общий вид кнопок */
+
+.control-button {
+    width: 55px;
+    height: 55px;
+    border: 1px solid #d9b77c;
+    border-radius: 50%;
+    background: rgba(25, 35, 43, 0.65);
+    color: #f0d6a0;
+    font-size: 22px;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Нажатие */
+
+.control-button:active {
+    background: rgba(155, 117, 72, 0.8);
+}
+
+/* Показываем управление на телефонах */
+
+@media (max-width: 768px) and (pointer: coarse) {
+
+    #mobile-controls {
+        display: flex;
+    }
+
+}
+
+/* ==================================
+   РАСПОЛОЖЕНИЕ МОБИЛЬНЫХ КНОПОК
+================================== */
+
+/* Инвентарь сверху по центру */
+.inventory-mobile {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 58px;
+    height: 58px;
+    font-size: 26px;
+    pointer-events: auto;
+}
+
+/* Кнопки справа — ромбом */
+.mobile-actions {
+    position: absolute;
+    right: 25px;
+    bottom: 25px;
+
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 64px);
+
+    grid-template-areas:
+        ". jump ."
+        "attack . fireball"
+        ". potion .";
+
+    gap: 5px;
+}
+
+/* Увеличиваем кнопки */
+.mobile-actions .control-button {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+}
+
+/* Расположение каждой кнопки */
+.action-jump {
+    grid-area: jump;
+}
+
+.action-attack {
+    grid-area: attack;
+}
+
+.action-fireball {
+    grid-area: fireball;
+}
+
+.action-potion {
+    grid-area: potion;
+}
+
+/* Движение слева */
+.mobile-movement {
+    position: absolute;
+    left: 25px;
+    bottom: 35px;
 }

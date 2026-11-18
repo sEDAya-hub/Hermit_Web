@@ -48,17 +48,134 @@
         </section>
 
 
+
         <section id="game-screen" class="screen">
 
             <h2>Путешествие начинается</h2>
 
-            <p>Здесь появится игровая сцена Хермита.</p>
+            <div class="game-stage">
+
+                <canvas
+                    id="game-canvas"
+                    width="960"
+                    height="540"
+                    aria-label="Игровая сцена HERMIT">
+                    Ваш браузер не поддерживает Canvas.
+                </canvas>
+
+                <!-- МОБИЛЬНОЕ УПРАВЛЕНИЕ -->
+                <div id="mobile-controls">
+                    <!-- Инвентарь -->
+                    <button id="inventory-button" class="control-button inventory-mobile">
+                        🎒
+                    </button>
+
+                    <!-- Левая сторона: движение -->
+                    <div class="mobile-movement">
+                        <button id="move-left" class="control-button">◀</button>
+                        <button id="move-right" class="control-button">▶</button>
+                    </div>
+
+                    <!-- Правая сторона: действия -->
+                    <div class="mobile-actions">
+                        <button id="jump-button" class="control-button action-jump">⬆️</button>
+                        <button id="attack-button" class="control-button action-attack">⚔️</button>
+                        <button id="fireball-button" class="control-button action-fireball">🔥</button>
+                        <button id="potion-button" class="control-button action-potion">🧪</button>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Окно поражения -->
+            <div id="death-screen" class="death-overlay">
+
+                <div class="death-window">
+
+                    <h2>Ой, случилась смэрд...</h2>
+
+                    <p>Похоже, приключение придётся начать заново.</p>
+
+                    <div class="death-buttons">
+
+                        <button id="restart-game" class="menu-button primary">
+                            Начать заново
+                        </button>
+
+                        <button id="load-save" class="menu-button">
+                            Последнее сохранение
+                        </button>
+
+                        <button id="death-to-menu" class="menu-button">
+                            В главное меню
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ИНВЕНТАРЬ -->
+            <div id="inventory-screen" class="inventory-overlay">
+
+                <div class="inventory-window">
+
+                    <div class="inventory-header">
+                        <h2>Инвентарь</h2>
+                        <button id="close-inventory">✕</button>
+                    </div>
+
+                    <div class="inventory-content">
+
+                        <div class="inventory-items">
+                            <h3>Предметы</h3>
+
+                            <div class="inventory-grid">
+
+                                <div class="inventory-slot" id="potion-slot">
+                                    <span>🧪</span>
+                                    <small id="potion-count">3</small>
+                                </div>
+
+                                <div class="inventory-slot"></div>
+                                <div class="inventory-slot"></div>
+                                <div class="inventory-slot"></div>
+
+                                <div class="inventory-slot"></div>
+                                <div class="inventory-slot"></div>
+                                <div class="inventory-slot"></div>
+                                <div class="inventory-slot"></div>
+
+                            </div>
+
+                            <button id="use-potion" class="menu-button">
+                                Использовать зелье
+                            </button>
+
+                        </div>
+
+                        <div class="inventory-equipment">
+                            <h3>Экипировка</h3>
+
+                            <div class="inventory-slot">⚔️</div>
+                            <div class="inventory-slot">🛡️</div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
 
             <button id="back-to-menu" class="menu-button">
                 Вернуться в меню
             </button>
 
         </section>
+
 
 
         <section id="settings-screen" class="screen">
