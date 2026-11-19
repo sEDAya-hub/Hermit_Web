@@ -10,8 +10,9 @@ function showScreen(screenId) {
 }
 
 
+
 // Новая игра
-document.getElementById("new-game").addEventListener("click", () => {
+document.getElementById("new-game").addEventListener("click", async () => {
 
     resetGame();
 
@@ -19,7 +20,35 @@ document.getElementById("new-game").addEventListener("click", () => {
 
     // Сбрасываем огненный шар
     fireball.active = false;
+
+    // Мобильный полноэкранный режим
+    if (window.matchMedia("(pointer: coarse)").matches) {
+
+        // Пытаемся открыть игру на весь экран
+        try {
+            if (!document.fullscreenElement &&
+                document.documentElement.requestFullscreen) {
+
+                await document.documentElement.requestFullscreen();
+            }
+        } catch (error) {
+            console.log("Полноэкранный режим недоступен:", error);
+        }
+
+        // Пытаемся установить горизонтальную ориентацию
+        try {
+            if (screen.orientation &&
+                screen.orientation.lock) {
+
+                await screen.orientation.lock("landscape");
+            }
+        } catch (error) {
+            console.log("Блокировка ориентации недоступна:", error);
+        }
+    }
+
 });
+
 
 // Перезапуск после смерти
 document.getElementById("restart-game").addEventListener("click", () => {
@@ -122,7 +151,7 @@ let inventoryOpen = false;
 // Первый противник — Порождение Скверны
 const enemy = {
     x: 600,
-    y: 390,
+    y: 360,
 
     width: 50,
     height: 60,
@@ -193,7 +222,7 @@ function drawScene() {
 
     // Рисуем землю
     ctx.fillStyle = "#465344";
-    ctx.fillRect(0, 450, 960, 90);
+    ctx.fillRect(0, 420, 960, 120);
 
     // Рисуем временного Хермита
     ctx.fillStyle = "#c6a36b";
@@ -489,7 +518,7 @@ function update() {
     hermit.y += hermit.velocityY;
 
     // Проверка земли
-    const groundY = 450 - hermit.height;
+    const groundY = 420 - hermit.height;
 
     if (hermit.y >= groundY) {
         hermit.y = groundY;
