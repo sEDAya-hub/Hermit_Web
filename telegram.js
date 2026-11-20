@@ -1,10 +1,11 @@
 
+
 (() => {
     const root = document.documentElement;
 
-    function updateViewport() {
-        const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp;
 
+    function updateViewport() {
         const width = tg?.viewportWidth || window.innerWidth;
 
         const height =
@@ -16,7 +17,12 @@
         root.style.setProperty("--app-height", `${height}px`);
     }
 
-    const tg = window.Telegram?.WebApp;
+    // Запрос полноэкранного режима
+    window.hermitEnterFullscreen = function () {
+        if (tg?.requestFullscreen && !tg.isFullscreen) {
+            tg.requestFullscreen();
+        }
+    };
 
     if (tg) {
         tg.ready();
@@ -25,6 +31,7 @@
         updateViewport();
 
         tg.onEvent("viewportChanged", updateViewport);
+        tg.onEvent("fullscreenChanged", updateViewport);
     } else {
         updateViewport();
         window.addEventListener("resize", updateViewport);

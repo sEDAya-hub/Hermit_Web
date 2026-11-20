@@ -943,6 +943,7 @@ Object.entries(mobileButtons).forEach(([buttonId, keyCode]) => {
 
 });
 
+
 // Новая игра
 document.getElementById("new-game").addEventListener("click", async () => {
 
@@ -956,22 +957,30 @@ document.getElementById("new-game").addEventListener("click", async () => {
     // Мобильный полноэкранный режим
     if (window.matchMedia("(pointer: coarse)").matches) {
 
-        // Пытаемся открыть игру на весь экран
+        const tg = window.Telegram?.WebApp;
+
+        // Полноэкранный режим Telegram Mini App
         try {
-            if (!document.fullscreenElement &&
-                document.documentElement.requestFullscreen) {
+            if (tg?.requestFullscreen) {
+                tg.requestFullscreen();
+            } else if (!tg && !document.fullscreenElement &&
+                       document.documentElement.requestFullscreen) {
 
                 await document.documentElement.requestFullscreen();
+            } else if (tg?.expand) {
+                tg.expand();
             }
         } catch (error) {
             console.log("Полноэкранный режим недоступен:", error);
+
+            if (tg?.expand) {
+                tg.expand();
+            }
         }
 
-        // Пытаемся установить горизонтальную ориентацию
+        // Горизонтальная ориентация
         try {
-            if (screen.orientation &&
-                screen.orientation.lock) {
-
+            if (screen.orientation?.lock) {
                 await screen.orientation.lock("landscape");
             }
         } catch (error) {
@@ -980,6 +989,7 @@ document.getElementById("new-game").addEventListener("click", async () => {
     }
 
 });
+
 
 // Игровой цикл
 function gameLoop() {
