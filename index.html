@@ -51,13 +51,42 @@
 
         <section id="game-screen" class="screen">
 
-            <h2>Путешествие начинается</h2>
-
             <div class="game-stage">
+
+                <button id="pause-button" class="pause-button" aria-label="Открыть меню паузы">
+                ☰
+                </button>
+
+                <!-- МЕНЮ ПАУЗЫ -->
+                <div id="pause-screen" class="pause-overlay">
+
+                    <div class="pause-window">
+
+                        <h2>Пауза</h2>
+
+                        <button id="resume-game" class="menu-button primary">
+                            Продолжить
+                        </button>
+
+                        <button id="save-game" class="menu-button">
+                            Сохранить игру
+                        </button>
+
+                        <button id="game-settings" class="menu-button">
+                            Настройки
+                        </button>
+
+                        <button id="pause-to-menu" class="menu-button">
+                            В главное меню
+                        </button>
+
+                    </div>
+
+                </div>
 
                 <canvas
                     id="game-canvas"
-                    width="960"
+                    width="1200"
                     height="540"
                     aria-label="Игровая сцена HERMIT">
                     Ваш браузер не поддерживает Canvas.
@@ -170,9 +199,7 @@
 
             </div>
 
-            <button id="back-to-menu" class="menu-button">
-                Вернуться в меню
-            </button>
+
 
         </section>
 
@@ -205,6 +232,8 @@
 
     </main>
 
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="telegram.js"></script>
     <script src="script.js"></script>
 
 </body>

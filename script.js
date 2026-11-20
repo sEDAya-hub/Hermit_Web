@@ -9,44 +9,31 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.add("active");
 }
 
+// Открытие меню паузы
+document.getElementById("pause-button").addEventListener("click", () => {
+    document.getElementById("pause-screen").classList.add("active");
+});
 
+// Продолжение игры
+document.getElementById("resume-game").addEventListener("click", () => {
+    document.getElementById("pause-screen").classList.remove("active");
+});
 
-// Новая игра
-document.getElementById("new-game").addEventListener("click", async () => {
+// Сохранить игру
+document.getElementById("save-game").addEventListener("click", saveGame);
 
-    resetGame();
+// Загрузка последнего сохранения после поражения
+document.getElementById("load-save").addEventListener("click", loadGame);
 
-    showScreen("game-screen");
+// Настройки — временная заглушка
+document.getElementById("game-settings").addEventListener("click", () => {
+    alert("Настройки пока находятся в разработке.");
+});
 
-    // Сбрасываем огненный шар
-    fireball.active = false;
-
-    // Мобильный полноэкранный режим
-    if (window.matchMedia("(pointer: coarse)").matches) {
-
-        // Пытаемся открыть игру на весь экран
-        try {
-            if (!document.fullscreenElement &&
-                document.documentElement.requestFullscreen) {
-
-                await document.documentElement.requestFullscreen();
-            }
-        } catch (error) {
-            console.log("Полноэкранный режим недоступен:", error);
-        }
-
-        // Пытаемся установить горизонтальную ориентацию
-        try {
-            if (screen.orientation &&
-                screen.orientation.lock) {
-
-                await screen.orientation.lock("landscape");
-            }
-        } catch (error) {
-            console.log("Блокировка ориентации недоступна:", error);
-        }
-    }
-
+// Выход в главное меню
+document.getElementById("pause-to-menu").addEventListener("click", () => {
+    document.getElementById("pause-screen").classList.remove("active");
+    showScreen("main-menu");
 });
 
 
@@ -58,6 +45,9 @@ document.getElementById("restart-game").addEventListener("click", () => {
     document.getElementById("death-screen").classList.remove("active");
 
 });
+
+// Загрузка последнего сохранения после смерти
+document.getElementById("load-save").addEventListener("click", loadGame);
 
 // Возвращение в меню после смерти
 document.getElementById("death-to-menu").addEventListener("click", () => {
@@ -71,10 +61,8 @@ document.getElementById("death-to-menu").addEventListener("click", () => {
 });
 
 
-// Продолжить
-document.getElementById("continue-game").addEventListener("click", () => {
-    alert("Сохранений пока нет!");
-});
+// Продолжить игру
+document.getElementById("continue-game").addEventListener("click", loadGame);
 
 
 // Настройки
@@ -86,12 +74,6 @@ document.getElementById("settings").addEventListener("click", () => {
 // Об игре
 document.getElementById("about").addEventListener("click", () => {
     showScreen("about-screen");
-});
-
-
-// Возвращение в меню
-document.getElementById("back-to-menu").addEventListener("click", () => {
-    showScreen("main-menu");
 });
 
 
@@ -204,6 +186,118 @@ function resetGame() {
 
 }
 
+
+// ==================================
+// СИСТЕМА СОХРАНЕНИЙ HERMIT
+// ==================================
+
+const SAVE_KEY = "hermit_save";
+
+// Сохранение игры
+function saveGame() {
+
+    const saveData = {
+        version: 1,
+
+        hermit: {
+            x: hermit.x,
+            y: hermit.y,
+            velocityY: hermit.velocityY,
+            onGround: hermit.onGround,
+            facing: hermit.facing,
+            health: hermit.health,
+            mana: hermit.mana,
+            healthPotions: hermit.healthPotions
+        },
+
+        enemy: {
+            x: enemy.x,
+            y: enemy.y,
+            health: enemy.health,
+            alive: enemy.alive
+        }
+    };
+
+    try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        updateContinueButton();
+
+        alert("Игра сохранена!");
+        return true;
+
+    } catch (error) {
+        console.error("Ошибка сохранения:", error);
+        alert("Не удалось сохранить игру.");
+        return false;
+    }
+}
+
+// Загрузка игры
+function loadGame() {
+
+    const savedData = localStorage.getItem(SAVE_KEY);
+
+    if (!savedData) {
+        alert("Сохранений пока нет!");
+        return false;
+    }
+
+    try {
+        const data = JSON.parse(savedData);
+
+        if (
+            data.version !== 1 ||
+            !data.hermit ||
+            !data.enemy
+        ) {
+            throw new Error("Некорректное сохранение");
+        }
+
+        Object.assign(hermit, data.hermit);
+        Object.assign(enemy, data.enemy);
+
+        // Сбрасываем временные действия
+        hermit.isAttacking = false;
+        hermit.attackTimer = 0;
+        hermit.hasHit = false;
+        enemy.hitFlash = 0;
+        enemy.attackCooldown = 0;
+
+        fireball.active = false;
+
+        updatePotionCount();
+
+        document.getElementById("death-screen").classList.remove("active");
+        document.getElementById("pause-screen").classList.remove("active");
+
+        showScreen("game-screen");
+
+        return true;
+
+    } catch (error) {
+        console.error("Ошибка загрузки:", error);
+        alert("Не удалось загрузить сохранение.");
+        return false;
+    }
+}
+
+// Проверка наличия сохранения
+function hasSavedGame() {
+    return localStorage.getItem(SAVE_KEY) !== null;
+}
+
+// Обновление кнопки «Продолжить»
+function updateContinueButton() {
+    const button = document.getElementById("continue-game");
+
+    if (button) {
+        button.disabled = !hasSavedGame();
+    }
+}
+
+// Проверяем сохранение при запуске
+updateContinueButton();
+
 // Показываем экран поражения
 function showDeathScreen() {
 
@@ -222,7 +316,7 @@ function drawScene() {
 
     // Рисуем землю
     ctx.fillStyle = "#465344";
-    ctx.fillRect(0, 420, 960, 120);
+    ctx.fillRect(0, 420, 1200, 120);
 
     // Рисуем временного Хермита
     ctx.fillStyle = "#c6a36b";
@@ -849,6 +943,43 @@ Object.entries(mobileButtons).forEach(([buttonId, keyCode]) => {
 
 });
 
+// Новая игра
+document.getElementById("new-game").addEventListener("click", async () => {
+
+    resetGame();
+
+    showScreen("game-screen");
+
+    // Сбрасываем огненный шар
+    fireball.active = false;
+
+    // Мобильный полноэкранный режим
+    if (window.matchMedia("(pointer: coarse)").matches) {
+
+        // Пытаемся открыть игру на весь экран
+        try {
+            if (!document.fullscreenElement &&
+                document.documentElement.requestFullscreen) {
+
+                await document.documentElement.requestFullscreen();
+            }
+        } catch (error) {
+            console.log("Полноэкранный режим недоступен:", error);
+        }
+
+        // Пытаемся установить горизонтальную ориентацию
+        try {
+            if (screen.orientation &&
+                screen.orientation.lock) {
+
+                await screen.orientation.lock("landscape");
+            }
+        } catch (error) {
+            console.log("Блокировка ориентации недоступна:", error);
+        }
+    }
+
+});
 
 // Игровой цикл
 function gameLoop() {

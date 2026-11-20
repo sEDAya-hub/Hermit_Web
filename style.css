@@ -198,7 +198,17 @@ h2 {
         max-width: 100%;
     }
 
+    /* Компактные кнопки меню паузы */
+    .pause-window .menu-button {
+    width: 100%;
+    max-width: 220px;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 15px;
+    }
 }
+
+
 
 /* ==================================
    ОКНО ПОРАЖЕНИЯ
@@ -531,44 +541,181 @@ h2 {
     bottom: 24px;
 }
 
+
+
 /* ==================================
-   МОБИЛЬНЫЙ LANDSCAPE
+   HERMIT — ИГРОВОЙ ЭКРАН LANDSCAPE
 ================================== */
 
 @media (max-width: 1024px) and (max-height: 600px) and (orientation: landscape) {
 
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body {
+        align-items: stretch;
+    }
+
     .game-container {
         width: 100%;
-        height: 100svh;
-        min-height: 100svh;
-        padding: 8px 16px;
+        height: 100%;
+        min-height: 0;
+        max-width: none;
+        padding: 0;
+
+        display: flex;
+        align-items: stretch;
+        justify-content: stretch;
     }
 
     #game-screen.active {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-    }
 
-    #game-screen > h2 {
-        font-size: clamp(18px, 3vw, 24px);
-        line-height: 1.1;
-        margin-bottom: 6px;
+        overflow: hidden;
     }
 
     .game-stage {
-        width: min(100%, 130svh);
-        max-width: 960px;
-        aspect-ratio: 16 / 9;
-        margin: 6px auto;
+        position: relative;
+
+        width: min(100vw, calc(100svh * 20 / 9), 1200px);
+        aspect-ratio: 20 / 9;
+
+        height: auto;
+        max-width: none;
+        margin: 0;
         flex: 0 0 auto;
+
+        border: none;
     }
 
-    #back-to-menu {
-        width: min(220px, 80%);
-        padding: 8px 12px;
-        font-size: 14px;
-        margin-top: 0;
+    #game-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
     }
+}
+/* ==================================
+   HERMIT — КНОПКА ПАУЗЫ
+================================== */
+
+.pause-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+
+    background: rgba(20, 25, 32, 0.45);
+    color: rgba(255, 255, 255, 0.8);
+
+    font-size: 22px;
+    cursor: pointer;
+
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.pause-button:hover {
+    background: rgba(20, 25, 32, 0.85);
+    color: #ffffff;
+}
+
+/* ==================================
+   HERMIT — ВЕРТИКАЛЬНОЕ ГЛАВНОЕ МЕНЮ
+================================== */
+
+#main-menu.active {
+    display: block;
+    width: 100%;
+    max-height: 100svh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px 12px;
+    overscroll-behavior: contain;
+}
+
+#main-menu h1 {
+    font-size: clamp(42px, 9vw, 76px);
+    line-height: 1.2;
+    padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+    body {
+        align-items: flex-start;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .game-container {
+        min-height: 100svh;
+        height: auto;
+        align-items: flex-start;
+        padding: 16px 12px;
+    }
+
+    #main-menu.active {
+        padding-top: 24px;
+        padding-bottom: 30px;
+    }
+}
+
+/* МЕНЮ ПАУЗЫ */
+.pause-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(0, 0, 0, 0.7);
+    padding: 16px;
+}
+
+.pause-overlay.active {
+    display: flex;
+}
+
+.pause-window {
+    width: 100%;
+    max-width: 280px;
+    padding: 22px 20px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+
+    background: #25232a;
+    border: 1px solid #756044;
+    border-radius: 14px;
+}
+
+.pause-window h2 {
+    margin-bottom: 6px;
+    color: #eee4d0;
+    text-align: center;
+    font-size: 24px;
 }
