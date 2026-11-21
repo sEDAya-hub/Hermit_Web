@@ -944,8 +944,9 @@ Object.entries(mobileButtons).forEach(([buttonId, keyCode]) => {
 });
 
 
+
 // Новая игра
-document.getElementById("new-game").addEventListener("click", async () => {
+document.getElementById("new-game").addEventListener("click", () => {
 
     resetGame();
 
@@ -954,41 +955,33 @@ document.getElementById("new-game").addEventListener("click", async () => {
     // Сбрасываем огненный шар
     fireball.active = false;
 
-    // Мобильный полноэкранный режим
+    // Полноэкранный режим Telegram Mini App
     if (window.matchMedia("(pointer: coarse)").matches) {
 
         const tg = window.Telegram?.WebApp;
 
-        // Полноэкранный режим Telegram Mini App
         try {
-            if (tg?.requestFullscreen) {
-                tg.requestFullscreen();
-            } else if (!tg && !document.fullscreenElement &&
-                       document.documentElement.requestFullscreen) {
-
-                await document.documentElement.requestFullscreen();
-            } else if (tg?.expand) {
-                tg.expand();
+            if (tg) {
+                if (tg.isVersionAtLeast("8.0") && !tg.isFullscreen) {
+                    tg.requestFullscreen();
+                } else {
+                    tg.expand();
+                }
+            } else if (
+                !document.fullscreenElement &&
+                document.documentElement.requestFullscreen
+            ) {
+                document.documentElement.requestFullscreen();
             }
         } catch (error) {
             console.log("Полноэкранный режим недоступен:", error);
 
-            if (tg?.expand) {
-                tg.expand();
-            }
-        }
-
-        // Горизонтальная ориентация
-        try {
-            if (screen.orientation?.lock) {
-                await screen.orientation.lock("landscape");
-            }
-        } catch (error) {
-            console.log("Блокировка ориентации недоступна:", error);
+            tg?.expand();
         }
     }
 
 });
+
 
 
 // Игровой цикл
