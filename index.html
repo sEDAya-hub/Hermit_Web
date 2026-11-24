@@ -53,6 +53,10 @@
 
             <div class="game-stage">
 
+                <button id="fullscreen-button" class="fullscreen-button" title="Полный экран">
+                    ⛶
+                </button>
+
                 <button id="pause-button" class="pause-button" aria-label="Открыть меню паузы">
                 ☰
                 </button>
@@ -93,11 +97,12 @@
                 </canvas>
 
                 <!-- МОБИЛЬНОЕ УПРАВЛЕНИЕ -->
+                <!-- Кнопка инвентаря -->
+                <button id="inventory-button" class="control-button inventory-mobile">
+                    🎒
+                </button>
+
                 <div id="mobile-controls">
-                    <!-- Инвентарь -->
-                    <button id="inventory-button" class="control-button inventory-mobile">
-                        🎒
-                    </button>
 
                     <!-- Левая сторона: движение -->
                     <div class="mobile-movement">
@@ -198,9 +203,6 @@
                 </div>
 
             </div>
-
-
-
         </section>
 
 
@@ -231,6 +233,8 @@
         </section>
 
     </main>
+
+    <audio id="menu-music" src="assets/audio/osnovnaya.mp3" loop></audio>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="telegram.js"></script>

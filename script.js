@@ -1,12 +1,36 @@
 
 const screens = document.querySelectorAll(".screen");
 
+// Музыка главного меню
+const menuMusic = document.getElementById("menu-music");
+
+menuMusic.volume = 0.18;
+
+// Запуск музыки
+function playMenuMusic() {
+    menuMusic.play().catch(error => {
+        console.log("Музыка ждёт взаимодействия с пользователем.");
+    });
+
+    // Запуск музыки после первого взаимодействия с игрой
+document.addEventListener("pointerdown", () => {
+    if (document.getElementById("main-menu").classList.contains("active")) {
+        playMenuMusic();
+    }
+}, { once: true });
+}
+
 function showScreen(screenId) {
     screens.forEach(screen => {
         screen.classList.remove("active");
     });
 
     document.getElementById(screenId).classList.add("active");
+    if (screenId === "main-menu") {
+        playMenuMusic();
+    } else {
+        menuMusic.pause();
+    }
 }
 
 // Открытие меню паузы
@@ -31,9 +55,18 @@ document.getElementById("game-settings").addEventListener("click", () => {
 });
 
 // Выход в главное меню
-document.getElementById("pause-to-menu").addEventListener("click", () => {
+document.getElementById("pause-to-menu").addEventListener("click", async () => {
+
     document.getElementById("pause-screen").classList.remove("active");
+
+    // Выходим из полноэкранного режима
+    if (document.fullscreenElement) {
+        await document.exitFullscreen();
+    }
+
+    // Открываем главное меню
     showScreen("main-menu");
+
 });
 
 
@@ -130,20 +163,69 @@ const hermit = {
 // Состояние инвентаря
 let inventoryOpen = false;
 
-// Первый противник — Порождение Скверны
-const enemy = {
-    x: 600,
+
+// Количество Скверн
+const totalScourges = 15;
+let scourgesDefeated = 0;
+let secondWaveSpawned = false;
+
+// Случайные позиции для второй волны Скверн
+const secondWavePositions = [];
+
+while (secondWavePositions.length < totalScourges - 1) {
+    const candidate = 600 + Math.random() * 2500;
+
+    const isFarEnough = secondWavePositions.every(
+        x => Math.abs(x - candidate) >= 140
+    );
+
+    if (isFarEnough) {
+        secondWavePositions.push(candidate);
+    }
+}
+
+// Расставляем Скверн по карте
+secondWavePositions.sort((a, b) => a - b);
+
+
+// Все Скверны на игровой карте
+const enemies = Array.from({ length: totalScourges }, (_, index) => ({
+
+    // Расположение противников
+    x: index === 0 ? 450 : secondWavePositions[index - 1],
     y: 360,
 
     width: 50,
     height: 60,
 
+    // Здоровье
     health: 3,
     maxHealth: 3,
-    alive: true,
+
+    // Пока активна только первая Скверна
+    alive: index === 0,
+
     hitFlash: 0,
-    attackCooldown: 0
-};
+    attackCooldown: 0,
+
+    // Поведение
+    alert: false,
+    speed: 1.5,
+    velocityY: 0,
+    jumpPower: -11,
+    onGround: true,
+    facing: -1,
+
+    // Анимация языка
+    tongueLength: 0,
+    tongueTimer: 0,
+    tongueHit: false
+
+}));
+
+// Временно оставляем ссылку на первого врага
+const enemy = enemies[0];
+
 
 // Огненный шар
 const fireball = {
@@ -156,6 +238,80 @@ const fireball = {
     direction: 1,
     active: false
 };
+
+// ==================================
+// КЛЮЧ ОТ ДОМИКА
+// ==================================
+
+const houseKey = {
+    x: 0,
+    y: 0,
+    width: 24,
+    height: 24,
+    active: false,
+    collected: false
+};
+
+// Состояние двери домика
+let houseUnlocked = false;
+
+// ==================================
+// ВЫПАДЕНИЕ КЛЮЧА
+// ==================================
+
+function dropHouseKey(enemy) {
+
+    if (scourgesDefeated === totalScourges) {
+
+        houseKey.x = enemy.x + enemy.width / 2;
+        houseKey.y = enemy.y + enemy.height - houseKey.height;
+
+        houseKey.active = true;
+        houseKey.collected = false;
+    }
+}
+
+// ==================================
+// КАМЕРА И ИГРОВОЙ МИР
+// ==================================
+
+const world = {
+    width: 3600,
+    height: 540
+};
+
+// ==================================
+// ПРЕПЯТСТВИЯ
+// ==================================
+
+const obstacles = [
+    {
+        x: 950,
+        y: 390,
+        width: 90,
+        height: 30,
+        type: "log"
+    },
+    {
+        x: 1450,
+        y: 380,
+        width: 65,
+        height: 40,
+        type: "stone"
+    },
+    {
+        x: 2050,
+        y: 390,
+        width: 110,
+        height: 30,
+        type: "log"
+    }
+];
+
+const camera = {
+    x: 0
+};
+
 
 // Сброс игры
 function resetGame() {
@@ -172,19 +328,44 @@ function resetGame() {
     hermit.isAttacking = false;
     hermit.attackTimer = 0;
     hermit.hasHit = false;
+
+    // Восстанавливаем здоровье, ману и эликсиры
     hermit.health = hermit.maxHealth;
     hermit.mana = hermit.maxMana;
     hermit.healthPotions = hermit.maxHealthPotions;
 
     updatePotionCount();
 
-    // Возрождаем противника
-    enemy.health = enemy.maxHealth;
-    enemy.alive = true;
-    enemy.hitFlash = 0;
-    enemy.attackCooldown = 0;
+    // Сбрасываем счётчик побеждённых Скверн
+    scourgesDefeated = 0;
+    secondWaveSpawned = false;
 
+    // Восстанавливаем всех Скверн
+    enemies.forEach((enemy, index) => {
+        enemy.health = enemy.maxHealth;
+        enemy.alive = index === 0;
+        enemy.hitFlash = 0;
+        enemy.attackCooldown = 0;
+        enemy.alert = false;
+        enemy.velocityY = 0;
+        enemy.onGround = true;
+        enemy.facing = -1;
+        enemy.tongueLength = 0;
+        enemy.tongueTimer = 0;
+        enemy.tongueHit = false;
+    });
+
+    // Сбрасываем огненный шар
+    fireball.active = false;
 }
+
+    // Сбрасываем ключ и замок
+    houseKey.x = 0;
+    houseKey.y = 0;
+    houseKey.active = false;
+    houseKey.collected = false;
+
+    houseUnlocked = false;
 
 
 // ==================================
@@ -193,11 +374,12 @@ function resetGame() {
 
 const SAVE_KEY = "hermit_save";
 
+
 // Сохранение игры
 function saveGame() {
 
     const saveData = {
-        version: 1,
+        version: 3,
 
         hermit: {
             x: hermit.x,
@@ -210,13 +392,33 @@ function saveGame() {
             healthPotions: hermit.healthPotions
         },
 
-        enemy: {
+        enemies: enemies.map(enemy => ({
             x: enemy.x,
             y: enemy.y,
+            velocityY: enemy.velocityY,
+            onGround: enemy.onGround,
+            facing: enemy.facing,
             health: enemy.health,
-            alive: enemy.alive
-        }
-    };
+            alive: enemy.alive,
+            alert: enemy.alert,
+            attackCooldown: enemy.attackCooldown,
+            tongueLength: enemy.tongueLength,
+            tongueTimer: enemy.tongueTimer,
+            tongueHit: enemy.tongueHit
+        })),
+
+        scourgesDefeated: scourgesDefeated,
+        secondWaveSpawned: secondWaveSpawned,
+
+        houseKey: {
+            x: houseKey.x,
+            y: houseKey.y,
+            active: houseKey.active,
+            collected: houseKey.collected
+        },
+
+        houseUnlocked: houseUnlocked
+        };
 
     try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
@@ -232,6 +434,8 @@ function saveGame() {
     }
 }
 
+
+
 // Загрузка игры
 function loadGame() {
 
@@ -245,23 +449,76 @@ function loadGame() {
     try {
         const data = JSON.parse(savedData);
 
-        if (
-            data.version !== 1 ||
-            !data.hermit ||
-            !data.enemy
-        ) {
+        if (!data.hermit || ![1, 2, 3].includes(data.version)) {
             throw new Error("Некорректное сохранение");
         }
 
         Object.assign(hermit, data.hermit);
-        Object.assign(enemy, data.enemy);
+
+        // Восстанавливаем всех Скверн
+        if ((data.version === 2 || data.version === 3) && Array.isArray(data.enemies)) {
+
+            if (data.enemies.length !== enemies.length) {
+                throw new Error("Количество Скверн не совпадает");
+            }
+
+            enemies.forEach((enemy, index) => {
+                Object.assign(enemy, data.enemies[index]);
+            });
+
+            scourgesDefeated = data.scourgesDefeated;
+            secondWaveSpawned = data.secondWaveSpawned;
+
+            // Восстанавливаем ключ и состояние двери
+            if (data.version === 3 && data.houseKey) {
+
+                houseKey.x = data.houseKey.x;
+                houseKey.y = data.houseKey.y;
+                houseKey.active = data.houseKey.active;
+                houseKey.collected = data.houseKey.collected;
+
+                houseUnlocked = data.houseUnlocked || false;
+
+            } else {
+
+                // Старые сохранения не содержат ключ
+                houseKey.x = 0;
+                houseKey.y = 0;
+                houseKey.active = false;
+                houseKey.collected = false;
+
+                houseUnlocked = false;
+            }
+
+        } else {
+            // Поддержка старого сохранения версии 1
+
+            enemies.forEach((enemy, index) => {
+                enemy.alive = false;
+                enemy.health = enemy.maxHealth;
+                enemy.alert = false;
+                enemy.attackCooldown = 0;
+                enemy.tongueLength = 0;
+                enemy.tongueTimer = 0;
+                enemy.tongueHit = false;
+            });
+
+            Object.assign(enemies[0], data.enemy);
+
+            scourgesDefeated = enemies[0].alive ? 0 : 1;
+            secondWaveSpawned = false;
+        }
 
         // Сбрасываем временные действия
         hermit.isAttacking = false;
         hermit.attackTimer = 0;
         hermit.hasHit = false;
-        enemy.hitFlash = 0;
-        enemy.attackCooldown = 0;
+
+        enemies.forEach(enemy => {
+            enemy.hitFlash = 0;
+            enemy.tongueTimer = 0;
+            enemy.tongueHit = false;
+        });
 
         fireball.active = false;
 
@@ -280,6 +537,7 @@ function loadGame() {
         return false;
     }
 }
+
 
 // Проверка наличия сохранения
 function hasSavedGame() {
@@ -310,17 +568,277 @@ function showDeathScreen() {
 // Рисуем игровую сцену
 function drawScene() {
 
-    // Очищаем холст и закрашиваем фон
+    // Положение камеры относительно Хермита
+    camera.x = hermit.x - canvas.width / 2;
+
+    // Не позволяем камере уйти за границы мира
+    camera.x = Math.max(
+        0,
+        Math.min(camera.x, world.width - canvas.width)
+    );
+
+    // Очищаем холст и рисуем неподвижный фон
     ctx.fillStyle = "#18232b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Рисуем землю
+    // ==================================
+    // НЕБО, СОЛНЦЕ И ОБЛАКА
+    // ==================================
+
+    // Небо
+    const sky = ctx.createLinearGradient(0, 0, 0, 420);
+    sky.addColorStop(0, "#668b9b");
+    sky.addColorStop(1, "#c1bda0");
+
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, 420);
+
+    // Солнце
+    ctx.fillStyle = "#f5d995";
+    ctx.beginPath();
+    ctx.arc(950, 85, 38, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Функция рисования облака
+    function drawCloud(x, y, scale) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = "rgba(235, 239, 225, 0.85)";
+
+        ctx.beginPath();
+        ctx.arc(0, 15, 20, 0, Math.PI * 2);
+        ctx.arc(22, 0, 25, 0, Math.PI * 2);
+        ctx.arc(48, 14, 19, 0, Math.PI * 2);
+        ctx.fillRect(0, 14, 48, 20);
+
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Облака
+    drawCloud(130, 95, 1);
+    drawCloud(440, 145, 0.8);
+    drawCloud(760, 65, 1.2);
+
+    // Начинаем отрисовку игрового мира с учётом камеры
+    ctx.save();
+    ctx.translate(-camera.x, 0);
+
+    // ==================================
+    // ДАЛЬНИЙ СЛОЙ ЛЕСА
+    // ==================================
+
+    ctx.fillStyle = "#24352f";
+
+    for (let i = 0; i < world.width; i += 180) {
+
+        const treeHeight = 100 + (i * 7 % 90);
+
+        ctx.beginPath();
+
+        ctx.moveTo(i, 420);
+        ctx.lineTo(i + 60, 420 - treeHeight);
+        ctx.lineTo(i + 120, 420);
+
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // Рисуем землю на всю длину мира
     ctx.fillStyle = "#465344";
-    ctx.fillRect(0, 420, 1200, 120);
+    ctx.fillRect(0, 420, world.width, 120);
 
-    // Рисуем временного Хермита
+    // ==================================
+    // ДОМИК В КОНЦЕ КАРТЫ
+    // ==================================
+
+    const houseX = 3350;
+
+    // Стены домика
+    ctx.fillStyle = "#a58b6b";
+    ctx.fillRect(houseX, 300, 190, 120);
+
+    // Обводка стен
+    ctx.strokeStyle = "#493b32";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(houseX, 300, 190, 120);
+
+    // Крыша
+    ctx.fillStyle = "#59413d";
+    ctx.beginPath();
+    ctx.moveTo(houseX - 15, 300);
+    ctx.lineTo(houseX + 95, 245);
+    ctx.lineTo(houseX + 205, 300);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "#302a28";
+    ctx.stroke();
+
+    // Дверь
+    ctx.fillStyle = "#51372e";
+    ctx.fillRect(houseX + 70, 330, 55, 90);
+
+    ctx.strokeStyle = "#30231f";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(houseX + 70, 330, 55, 90);
+
+    // Ручка двери
+    ctx.fillStyle = "#d5b45e";
+    ctx.beginPath();
+    ctx.arc(houseX + 113, 375, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Замок
+    ctx.fillStyle = "#d6b45c";
+    ctx.fillRect(houseX + 90, 365, 16, 20);
+
+    ctx.strokeStyle = "#493b32";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(houseX + 90, 365, 16, 20);
+
+    // Скважина замка
+    ctx.fillStyle = "#493b32";
+    ctx.beginPath();
+    ctx.arc(houseX + 98, 374, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Окно слева
+    ctx.fillStyle = "#9fc1c2";
+    ctx.fillRect(houseX + 20, 325, 35, 35);
+
+    ctx.strokeStyle = "#493b32";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(houseX + 20, 325, 35, 35);
+
+    // Окно справа
+    ctx.fillStyle = "#9fc1c2";
+    ctx.fillRect(houseX + 140, 325, 35, 35);
+
+    ctx.strokeRect(houseX + 140, 325, 35, 35);
+
+    // ==================================
+    // ПОДСКАЗКА У ДОМИКА
+    // ==================================
+
+    const distanceToHouse = Math.abs(
+        (hermit.x + hermit.width / 2) - (houseX + 95)
+    );
+
+    if (distanceToHouse < 230) {
+
+        // Фон подсказки
+        ctx.fillStyle = "rgba(25, 28, 30, 0.9)";
+        ctx.fillRect(houseX - 45, 185, 280, 45);
+
+        // Обводка
+        ctx.strokeStyle = "#d6b45c";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(houseX - 45, 185, 280, 45);
+
+        // Текст
+        ctx.fillStyle = "#f5dfaa";
+        ctx.font = "bold 17px Arial";
+        ctx.textAlign = "center";
+
+        let houseHint = "";
+
+        if (scourgesDefeated < totalScourges) {
+            houseHint = "Победи всех Скверн!";
+        }
+        else if (!houseKey.collected) {
+            houseHint = "Найди ключ!";
+        }
+        else {
+            houseHint = "Ключ найден! Дверь открыта!";
+        }
+
+        ctx.fillText(
+            houseHint,
+            houseX + 95,
+            213
+        );
+    }
+
+    // ==================================
+    // РИСУЕМ ПРЕПЯТСТВИЯ
+    // ==================================
+
+    for (const obstacle of obstacles) {
+
+        // Бревно
+        if (obstacle.type === "log") {
+            ctx.fillStyle = "#65432f";
+            ctx.fillRect(
+                obstacle.x,
+                obstacle.y,
+                obstacle.width,
+                obstacle.height
+            );
+
+            ctx.fillStyle = "#98704a";
+            ctx.fillRect(
+                obstacle.x + 5,
+                obstacle.y + 4,
+                obstacle.width - 10,
+                6
+            );
+
+            ctx.fillStyle = "#b18a5e";
+            ctx.beginPath();
+            ctx.ellipse(
+                obstacle.x + obstacle.width,
+                obstacle.y + obstacle.height / 2,
+                8,
+                obstacle.height / 2,
+                0, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        // Камень
+        if (obstacle.type === "stone") {
+            ctx.fillStyle = "#62676b";
+
+            ctx.beginPath();
+            ctx.moveTo(obstacle.x, obstacle.y + obstacle.height);
+            ctx.lineTo(obstacle.x + 10, obstacle.y + 10);
+            ctx.lineTo(obstacle.x + 30, obstacle.y);
+            ctx.lineTo(obstacle.x + obstacle.width - 8, obstacle.y + 8);
+            ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Светлая грань
+            ctx.fillStyle = "#92999c";
+            ctx.beginPath();
+            ctx.moveTo(obstacle.x + 10, obstacle.y + 10);
+            ctx.lineTo(obstacle.x + 30, obstacle.y);
+            ctx.lineTo(obstacle.x + 42, obstacle.y + 12);
+            ctx.lineTo(obstacle.x + 22, obstacle.y + 20);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+
+    // ==================================
+    // ВРЕМЕННЫЙ СПРАЙТ ХЕРМИТА
+    // ==================================
+
+    // Тень
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.fillRect(
+        hermit.x + 3,
+        hermit.y + 3,
+        hermit.width,
+        hermit.height
+    );
+
+    // Тело
     ctx.fillStyle = "#c6a36b";
-
     ctx.fillRect(
         hermit.x,
         hermit.y,
@@ -328,31 +846,64 @@ function drawScene() {
         hermit.height
     );
 
+    // Тёмная обводка
+    ctx.strokeStyle = "#24201d";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(
+        hermit.x,
+        hermit.y,
+        hermit.width,
+        hermit.height
+    );
+
+    // Светлая полоска сверху — условное освещение
+    ctx.fillStyle = "#e8d09c";
+    ctx.fillRect(
+        hermit.x + 4,
+        hermit.y + 3,
+        hermit.width - 8,
+        4
+    );
+
     // Рисуем удар мечом
     if (hermit.isAttacking) {
 
         ctx.save();
 
-        ctx.fillStyle = "#e5c58d";
+        // Разворачиваем систему координат в сторону взгляда
+        const direction = hermit.facing === "right" ? 1 : -1;
 
-        const swordX = hermit.facing === "right"
-            ? hermit.x + hermit.width
-            : hermit.x - 35;
-
-        // Наклон меча
         ctx.translate(
-            hermit.facing === "right" ? swordX : swordX + 35,
+            hermit.facing === "right"
+                ? hermit.x + hermit.width
+                : hermit.x,
             hermit.y + 35
         );
 
-        ctx.rotate(
-            hermit.facing === "right" ? -0.5 : 0.5
-        );
+        ctx.scale(direction, 1);
+        ctx.rotate(-0.5);
 
-        ctx.fillRect(-17, -4, 35, 8);
+        // Клинок
+        ctx.fillStyle = "#d8dce0";
+        ctx.fillRect(0, -4, 55, 8);
+
+        // Острие
+        ctx.beginPath();
+        ctx.moveTo(55, -4);
+        ctx.lineTo(65, 0);
+        ctx.lineTo(55, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Гарда
+        ctx.fillStyle = "#a8793e";
+        ctx.fillRect(-4, -7, 5, 14);
+
+        // Рукоять
+        ctx.fillStyle = "#65432f";
+        ctx.fillRect(-14, -3, 10, 6);
 
         ctx.restore();
-
     }
 
     // Рисуем огненный шар
@@ -374,59 +925,172 @@ function drawScene() {
 
     }
 
-    // Рисуем противника
-    if (enemy.alive) {
 
-        // Тело Скверны
-        ctx.fillStyle = enemy.hitFlash > 0
-            ? "#d94b42"
-            : "#315b45";
+    // Рисуем всех Скверн
+    enemies.forEach(scourge => {
 
-        ctx.fillRect(
-            enemy.x,
-            enemy.y,
-            enemy.width,
-            enemy.height
+        if (scourge.alive) {
+
+            // Тело Скверны
+            ctx.fillStyle = scourge.hitFlash > 0
+                ? "#d94b42"
+                : "#315b45";
+
+            ctx.fillRect(
+                scourge.x,
+                scourge.y,
+                scourge.width,
+                scourge.height
+            );
+
+            // ==================================
+            // ВЫДВИЖНОЙ ЯЗЫК СКВЕРНЫ
+            // ==================================
+
+            if (scourge.tongueLength > 0) {
+
+                const direction = hermit.x < scourge.x ? -1 : 1;
+
+                const mouthX = direction === 1
+                    ? scourge.x + scourge.width
+                    : scourge.x;
+
+                const mouthY = scourge.y + 38;
+
+                const tongueEndX = mouthX + direction * scourge.tongueLength;
+
+                ctx.strokeStyle = "#a83250";
+                ctx.lineWidth = 7;
+                ctx.lineCap = "round";
+
+                ctx.beginPath();
+                ctx.moveTo(mouthX, mouthY);
+                ctx.lineTo(tongueEndX, mouthY);
+                ctx.stroke();
+
+                // Раздвоенный кончик
+                ctx.lineWidth = 4;
+
+                ctx.beginPath();
+
+                ctx.moveTo(tongueEndX, mouthY);
+                ctx.lineTo(tongueEndX + direction * 12, mouthY - 8);
+
+                ctx.moveTo(tongueEndX, mouthY);
+                ctx.lineTo(tongueEndX + direction * 12, mouthY + 8);
+
+                ctx.stroke();
+            }
+
+            // ==================================
+            // ГЛАЗА СКВЕРНЫ
+            // ==================================
+
+            ctx.fillStyle = "#d94b42";
+
+            ctx.fillRect(scourge.x + 10, scourge.y + 15, 8, 8);
+            ctx.fillRect(scourge.x + 32, scourge.y + 15, 8, 8);
+
+            // Злые брови
+            if (scourge.alert) {
+
+                ctx.strokeStyle = "#171b18";
+                ctx.lineWidth = 4;
+                ctx.lineCap = "round";
+
+                ctx.beginPath();
+
+                ctx.moveTo(scourge.x + 8, scourge.y + 12);
+                ctx.lineTo(scourge.x + 20, scourge.y + 20);
+
+                ctx.moveTo(scourge.x + 42, scourge.y + 12);
+                ctx.lineTo(scourge.x + 30, scourge.y + 20);
+
+                ctx.stroke();
+            }
+
+            // ==================================
+            // ПОЛОСКА ЗДОРОВЬЯ
+            // ==================================
+
+            ctx.fillStyle = "#382b2b";
+
+            ctx.fillRect(
+                scourge.x,
+                scourge.y - 12,
+                scourge.width,
+                6
+            );
+
+            ctx.fillStyle = "#b94b43";
+
+            ctx.fillRect(
+                scourge.x,
+                scourge.y - 12,
+                scourge.width * (scourge.health / scourge.maxHealth),
+                6
+            );
+        }
+    });
+
+
+    // ==================================
+    // РИСУЕМ КЛЮЧ ОТ ДОМИКА
+    // ==================================
+
+    if (houseKey.active && !houseKey.collected) {
+
+        ctx.save();
+
+        // Золотой цвет
+        ctx.strokeStyle = "#f5c542";
+        ctx.fillStyle = "#f5c542";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+
+        // Круглая головка ключа
+        ctx.beginPath();
+        ctx.arc(
+            houseKey.x + 6,
+            houseKey.y + 7,
+            6,
+            0,
+            Math.PI * 2
         );
+        ctx.stroke();
 
-        // Глаза
-        ctx.fillStyle = "#d94b42";
+        // Стержень ключа
+        ctx.beginPath();
+        ctx.moveTo(houseKey.x + 12, houseKey.y + 7);
+        ctx.lineTo(houseKey.x + 25, houseKey.y + 7);
+        ctx.stroke();
 
-        ctx.fillRect(
-            enemy.x + 10,
-            enemy.y + 15,
-            8,
-            8
-        );
+        // Зубцы ключа
+        ctx.beginPath();
+        ctx.moveTo(houseKey.x + 20, houseKey.y + 7);
+        ctx.lineTo(houseKey.x + 20, houseKey.y + 12);
 
-        ctx.fillRect(
-            enemy.x + 32,
-            enemy.y + 15,
-            8,
-            8
-        );
+        ctx.moveTo(houseKey.x + 25, houseKey.y + 7);
+        ctx.lineTo(houseKey.x + 25, houseKey.y + 11);
+        ctx.stroke();
 
-        // Фон полоски здоровья
-        ctx.fillStyle = "#382b2b";
-
-        ctx.fillRect(
-            enemy.x,
-            enemy.y - 12,
-            enemy.width,
-            6
-        );
-
-        // Текущее здоровье
-        ctx.fillStyle = "#b94b43";
-
-        ctx.fillRect(
-            enemy.x,
-            enemy.y - 12,
-            enemy.width * (enemy.health / enemy.maxHealth),
-            6
-        );
-
+        ctx.restore();
     }
+
+
+    // Возвращаем обычные экранные координаты для интерфейса
+    ctx.restore();
+
+    // Счётчик побеждённых Скверн
+    ctx.fillStyle = "#f5dfaa";
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign = "right";
+
+    ctx.fillText(
+        "Скверна: " + scourgesDefeated + " / " + totalScourges,
+        canvas.width -30,
+        150
+    );
 
     // ==================================
     // ИНТЕРФЕЙС ХЕРМИТА (HUD)
@@ -434,7 +1098,7 @@ function drawScene() {
 
     // Фон панели
     ctx.fillStyle = "#20252b";
-    ctx.fillRect(20, 20, 220, 115);
+    ctx.fillRect(20, 20, 220, 145);
 
     // Настройки текста
     ctx.fillStyle = "#d9b77c";
@@ -500,12 +1164,48 @@ document.addEventListener("keydown", function(event) {
         return;
     }
 
+    // ==================================
+    // ПОДБОР КЛЮЧА
+    // ==================================
+
+    if (houseKey.active && !houseKey.collected) {
+
+        const touchingKey =
+            hermit.x + hermit.width > houseKey.x &&
+            hermit.x < houseKey.x + houseKey.width &&
+            hermit.y + hermit.height > houseKey.y &&
+            hermit.y < houseKey.y + houseKey.height;
+
+        if (touchingKey) {
+            houseKey.collected = true;
+        }
+    }
+
     // Не принимаем игровые клавиши при открытом инвентаре
     if (inventoryOpen) {
         return;
     }
 
     keys[event.code] = true;
+
+    // ==================================
+    // ОТКРЫТИЕ ДВЕРИ ДОМИКА
+    // ==================================
+
+    if (event.code === "KeyE" && !event.repeat) {
+
+        const distanceToHouse = Math.abs(
+            (hermit.x + hermit.width / 2) - (houseX + 95)
+        );
+
+        if (
+            distanceToHouse < 120 &&
+            houseKey.collected &&
+            scourgesDefeated === totalScourges
+        ) {
+            houseUnlocked = true;
+        }
+    }
 
     // Прыжок
     if (
@@ -593,16 +1293,43 @@ function update() {
     // Не обновляем игровой мир, пока открыт инвентарь
     if (inventoryOpen) return;
 
-    // Движение влево
-    if (keys["ArrowLeft"]) {
-        hermit.x -= hermit.speed;
-        hermit.facing = "left";
-    }
+    // ==================================
+    // ДВИЖЕНИЕ ХЕРМИТА
+    // ==================================
+
+    let moveX = 0;
 
     // Движение вправо
     if (keys["ArrowRight"]) {
-        hermit.x += hermit.speed;
+        moveX = hermit.speed;
         hermit.facing = "right";
+    }
+
+    // Движение влево
+    if (keys["ArrowLeft"]) {
+        moveX = -hermit.speed;
+        hermit.facing = "left";
+    }
+
+    // Проверяем столкновение с препятствиями
+    const nextX = hermit.x + moveX;
+
+    const willHitObstacle = obstacles.some(obstacle => {
+
+        const horizontalCollision =
+            nextX + hermit.width > obstacle.x &&
+            nextX < obstacle.x + obstacle.width;
+
+        const verticalCollision =
+            hermit.y + hermit.height > obstacle.y &&
+            hermit.y < obstacle.y + obstacle.height;
+
+        return horizontalCollision && verticalCollision;
+    });
+
+    // Перемещаемся, только если путь свободен
+    if (!willHitObstacle) {
+        hermit.x = nextX;
     }
 
     // Гравитация
@@ -610,6 +1337,29 @@ function update() {
 
     // Вертикальное перемещение
     hermit.y += hermit.velocityY;
+
+    // ==================================
+    // ПРИЗЕМЛЕНИЕ НА ПРЕПЯТСТВИЯ
+    // ==================================
+
+    for (const obstacle of obstacles) {
+
+        const horizontalOverlap =
+            hermit.x + hermit.width > obstacle.x &&
+            hermit.x < obstacle.x + obstacle.width;
+
+        const fallingOntoObstacle =
+            hermit.velocityY >= 0 &&
+            hermit.y + hermit.height >= obstacle.y &&
+            hermit.y + hermit.height - hermit.velocityY <= obstacle.y;
+
+        if (horizontalOverlap && fallingOntoObstacle) {
+
+            hermit.y = obstacle.y - hermit.height;
+            hermit.velocityY = 0;
+            hermit.onGround = true;
+        }
+    }
 
     // Проверка земли
     const groundY = 420 - hermit.height;
@@ -620,26 +1370,48 @@ function update() {
         hermit.onGround = true;
     }
 
-    // Границы игрового поля
-    if (hermit.x < 0) {
-        hermit.x = 0;
-    }
 
-    if (hermit.x + hermit.width > canvas.width) {
-        hermit.x = canvas.width - hermit.width;
-    }
+    // ==================================
+    // ФИЗИКА ВСЕХ СКВЕРН
+    // ==================================
 
-    // Продолжительность атаки
-    if (hermit.attackTimer > 0) {
-        hermit.attackTimer--;
-    } else {
-        hermit.isAttacking = false;
-    }
+    enemies.forEach(enemy => {
 
-    // Уменьшаем время красной вспышки
-    if (enemy.hitFlash > 0) {
-        enemy.hitFlash--;
-    }
+        if (!enemy.alive) return;
+
+        // Гравитация
+        enemy.velocityY += hermit.gravity;
+        enemy.y += enemy.velocityY;
+
+        // Приземление на препятствия
+        for (const obstacle of obstacles) {
+
+            const horizontalOverlap =
+                enemy.x + enemy.width > obstacle.x &&
+                enemy.x < obstacle.x + obstacle.width;
+
+            const fallingOntoObstacle =
+                enemy.velocityY >= 0 &&
+                enemy.y + enemy.height >= obstacle.y &&
+                enemy.y + enemy.height - enemy.velocityY <= obstacle.y;
+
+            if (horizontalOverlap && fallingOntoObstacle) {
+                enemy.y = obstacle.y - enemy.height;
+                enemy.velocityY = 0;
+                enemy.onGround = true;
+            }
+        }
+
+        // Приземление на землю
+        const enemyGroundY = 420 - enemy.height;
+
+        if (enemy.y >= enemyGroundY) {
+            enemy.y = enemyGroundY;
+            enemy.velocityY = 0;
+            enemy.onGround = true;
+        }
+
+    });
 
     // ==================================
     // ДВИЖЕНИЕ ОГНЕННОГО ШАРА
@@ -649,90 +1421,263 @@ function update() {
 
         fireball.x += fireball.speed * fireball.direction;
 
-        // Проверяем попадание в противника
-        if (
-            enemy.alive &&
-            fireball.x + fireball.radius >= enemy.x &&
-            fireball.x - fireball.radius <= enemy.x + enemy.width &&
-            fireball.y + fireball.radius >= enemy.y &&
-            fireball.y - fireball.radius <= enemy.y + enemy.height
-        ) {
 
-            enemy.health--;
+        // Проверяем попадание во всех Скверн
+        for (const enemy of enemies) {
 
-            enemy.hitFlash = 8;
+            if (!enemy.alive) continue;
 
-            fireball.active = false;
+            if (
+                fireball.x + fireball.radius >= enemy.x &&
+                fireball.x - fireball.radius <= enemy.x + enemy.width &&
+                fireball.y + fireball.radius >= enemy.y &&
+                fireball.y - fireball.radius <= enemy.y + enemy.height
+            ) {
 
-            if (enemy.health <= 0) {
+                enemy.health--;
+                enemy.hitFlash = 8;
+
+                // Скверна замечает Хермита после попадания
+                enemy.alert = true;
+
+                fireball.active = false;
+
+                if (enemy.health <= 0) {
                 enemy.alive = false;
+                scourgesDefeated++;
+                dropHouseKey(enemy);
+                }
+
+                break;
+            }
+        }
+
+
+        // Убираем шар за пределами игрового мира
+        if (
+         fireball.x < 0 ||
+            fireball.x > world.width
+        ) {
+            fireball.active = false;
+        }
+
             }
 
-        }
 
-        // Убираем шар за пределами игрового поля
-        if (
-            fireball.x < 0 ||
-            fireball.x > canvas.width
-        ) {
-            fireball.active = false;
-        }
 
-    }
+    // ==================================
+    // ТАЙМЕР АТАКИ МЕЧОМ
+    // ==================================
 
-    // Проверка попадания мечом
-    if (hermit.isAttacking && enemy.alive && !hermit.hasHit) {
+    if (hermit.isAttacking) {
+        hermit.attackTimer--;
 
-        const swordRange = 55;
-
-        // Расстояние между Хермитом и врагом
-        const distance = enemy.x - hermit.x;
-
-        // Проверяем направление и расстояние
-        if (
-            (hermit.facing === "right" && distance > 0 && distance < swordRange) ||
-            (hermit.facing === "left" && distance < 0 && distance > -swordRange)
-        ) {
-            enemy.health--;
+        if (hermit.attackTimer <= 0) {
             hermit.isAttacking = false;
-            hermit.hasHit = true;
-            enemy.hitFlash = 8;
+            hermit.attackTimer = 0;
+            hermit.hasHit = false;
+        }
+    }
 
-            if (enemy.health <= 0) {
+
+    // ==================================
+    // ПРОВЕРКА ПОПАДАНИЯ МЕЧОМ
+    // ==================================
+
+    if (hermit.isAttacking && !hermit.hasHit) {
+
+        const swordRange = 85;
+
+        for (const enemy of enemies) {
+
+            if (!enemy.alive) continue;
+
+            const distance = enemy.x - hermit.x;
+
+            const inSwordRange =
+                (hermit.facing === "right" &&
+                    distance > 0 &&
+                    distance < swordRange) ||
+                (hermit.facing === "left" &&
+                    distance < 0 &&
+                    distance > -swordRange);
+
+            if (inSwordRange) {
+
+                enemy.health--;
+                enemy.hitFlash = 8;
+
+                // Скверна замечает Хермита
+                enemy.alert = true;
+
+                // Один удар за один взмах
+                hermit.hasHit = true;
+
+                if (enemy.health <= 0) {
                 enemy.alive = false;
+                scourgesDefeated++;
+                dropHouseKey(enemy);
+            }
+
+                break;
             }
         }
+    }
 
+
+    // ==================================
+    // ПОЯВЛЕНИЕ ВТОРОЙ ВОЛНЫ СКВЕРН
+    // ==================================
+
+    const distanceToHouse = Math.abs(
+        (hermit.x + hermit.width / 2) - (3350 + 95)
+    );
+
+    if (
+        scourgesDefeated >= 1 &&
+        !secondWaveSpawned &&
+        distanceToHouse < 230
+    ) {
+        secondWaveSpawned = true;
+
+        for (let i = 1; i < enemies.length; i++) {
+            enemies[i].alive = true;
+        }
     }
 
     // ==================================
-    // АТАКА ПРОТИВНИКА
+    // ОБНАРУЖЕНИЕ И АТАКА ВСЕХ СКВЕРН
     // ==================================
 
-    if (enemy.alive) {
+    enemies.forEach(enemy => {
+
+        if (!enemy.alive) return;
+
+        // Уменьшаем время красной вспышки
+        if (enemy.hitFlash > 0) {
+            enemy.hitFlash--;
+        }
 
         const distance = enemy.x - hermit.x;
+        const absDistance = Math.abs(distance);
 
-        // Проверяем, находится ли Хермит рядом
-        if (Math.abs(distance) < 60) {
-
-            // Таймер ожидания между атаками
-            if (enemy.attackCooldown <= 0) {
-
-                hermit.health -= 10;
-
-                enemy.attackCooldown = 60;
-
-            }
-
+        // Скверна замечает Хермита
+        if (absDistance < 180) {
+            enemy.alert = true;
         }
 
-    }
+        // Преследование Хермита
+        if (enemy.alert && enemy.tongueTimer === 0) {
 
-    // Уменьшаем таймер атаки противника
-    if (enemy.attackCooldown > 0) {
-        enemy.attackCooldown--;
-    }
+            if (hermit.x < enemy.x) {
+                enemy.facing = -1;
+            } else {
+                enemy.facing = 1;
+            }
+
+            const obstacleAhead = obstacles.some(obstacle => {
+
+                const distanceToObstacle = enemy.facing === 1
+                    ? obstacle.x - (enemy.x + enemy.width)
+                    : enemy.x - (obstacle.x + obstacle.width);
+
+                const verticalOverlap =
+                    enemy.y + enemy.height > obstacle.y;
+
+                return distanceToObstacle >= 0 &&
+                       distanceToObstacle < 45 &&
+                       verticalOverlap;
+            });
+
+            if (obstacleAhead && enemy.onGround) {
+                enemy.velocityY = enemy.jumpPower;
+                enemy.onGround = false;
+            }
+
+            if (absDistance > 65) {
+                enemy.x += enemy.facing * enemy.speed;
+            }
+        }
+
+        // Начинаем атаку языком
+        if (
+            enemy.alert &&
+            absDistance < 90 &&
+            enemy.attackCooldown <= 0 &&
+            enemy.tongueTimer === 0
+        ) {
+            enemy.tongueTimer = 1;
+            enemy.tongueHit = false;
+            enemy.attackCooldown = 100;
+        }
+
+        // Анимация атаки языком
+        if (enemy.tongueTimer > 0) {
+
+            enemy.tongueTimer++;
+
+            // Подготовка к атаке
+            if (enemy.tongueTimer < 12) {
+                enemy.tongueLength = 0;
+            }
+
+            // Язык выдвигается
+            else if (enemy.tongueTimer < 20) {
+                enemy.tongueLength = (enemy.tongueTimer - 12) * 12;
+            }
+
+            // Язык полностью выдвинут
+            else if (enemy.tongueTimer < 27) {
+                enemy.tongueLength = 96;
+            }
+
+            // Язык возвращается
+            else if (enemy.tongueTimer < 35) {
+                enemy.tongueLength = (35 - enemy.tongueTimer) * 12;
+            }
+
+            // Атака завершена
+            else {
+                enemy.tongueTimer = 0;
+                enemy.tongueLength = 0;
+                enemy.tongueHit = false;
+            }
+
+            // Наносим урон один раз за атаку
+            if (enemy.tongueTimer === 20 && !enemy.tongueHit) {
+
+                const tongueY = enemy.y + 38;
+
+                const verticalOverlap =
+                    hermit.y < tongueY + 8 &&
+                    hermit.y + hermit.height > tongueY - 8;
+
+                const tongueLeft = enemy.facing === -1
+                    ? enemy.x - enemy.tongueLength
+                    : enemy.x;
+
+                const tongueRight = enemy.facing === 1
+                    ? enemy.x + enemy.width + enemy.tongueLength
+                    : enemy.x + enemy.width;
+
+                const horizontalOverlap =
+                    hermit.x + hermit.width > tongueLeft &&
+                    hermit.x < tongueRight;
+
+                if (verticalOverlap && horizontalOverlap) {
+                    hermit.health -= 10;
+                }
+
+                enemy.tongueHit = true;
+            }
+        }
+
+        // Таймер ожидания между атаками
+        if (enemy.attackCooldown > 0) {
+            enemy.attackCooldown--;
+        }
+
+    });
 
     // Проверяем смерть Хермита
     if (hermit.health <= 0) {
@@ -945,6 +1890,7 @@ Object.entries(mobileButtons).forEach(([buttonId, keyCode]) => {
 
 
 
+
 // Новая игра
 document.getElementById("new-game").addEventListener("click", () => {
 
@@ -955,33 +1901,36 @@ document.getElementById("new-game").addEventListener("click", () => {
     // Сбрасываем огненный шар
     fireball.active = false;
 
-    // Полноэкранный режим Telegram Mini App
-    if (window.matchMedia("(pointer: coarse)").matches) {
+        // Полноэкранный режим самой игры
+    const gameScreen = document.getElementById("game-screen");
 
-        const tg = window.Telegram?.WebApp;
+    if (!document.fullscreenElement && gameScreen?.requestFullscreen) {
 
-        try {
-            if (tg) {
-                if (tg.isVersionAtLeast("8.0") && !tg.isFullscreen) {
-                    tg.requestFullscreen();
-                } else {
-                    tg.expand();
-                }
-            } else if (
-                !document.fullscreenElement &&
-                document.documentElement.requestFullscreen
-            ) {
-                document.documentElement.requestFullscreen();
-            }
-        } catch (error) {
-            console.log("Полноэкранный режим недоступен:", error);
-
-            tg?.expand();
-        }
+        gameScreen.requestFullscreen()
+            .catch(error => {
+                console.log("Не удалось включить полный экран:", error);
+            });
     }
 
 });
 
+// Переключение полноэкранного режима
+const fullscreenButton = document.getElementById("fullscreen-button");
+const gameScreen = document.getElementById("game-screen");
+
+fullscreenButton.addEventListener("click", async () => {
+
+    try {
+        if (document.fullscreenElement) {
+            await document.exitFullscreen();
+        } else {
+            await gameScreen.requestFullscreen();
+        }
+    } catch (error) {
+        console.log("Ошибка полноэкранного режима:", error);
+    }
+
+});
 
 
 // Игровой цикл
