@@ -19,9 +19,27 @@
 
             <h1>HERMIT</h1>
 
+
             <p class="description">
                 Продолжение следует...
             </p>
+
+            <!-- Светлячки -->
+            <div id="fireflies" class="fireflies" aria-hidden="true"></div>
+
+            <!-- Цветок для включения музыки -->
+            <button id="music-button" class="music-button is-hidden" type="button">
+                <span class="flower-art" aria-hidden="true">
+                    <span class="petal p1"></span>
+                    <span class="petal p2"></span>
+                    <span class="petal p3"></span>
+                    <span class="petal p4"></span>
+                    <span class="petal p5"></span>
+                    <span class="petal p6"></span>
+                    <span class="flower-center"></span>
+                </span>
+                <span class="music-hint">Нажми на меня!</span>
+            </button>
 
             <div class="menu-buttons">
 
@@ -235,6 +253,19 @@
     </main>
 
     <audio id="menu-music" src="assets/audio/osnovnaya.mp3" loop></audio>
+    <audio id="battle-music" src="assets/audio/boi.mp3" loop></audio>
+
+    <!-- Звуковые эффекты -->
+    <audio id="sound-fire" src="assets/audio/fire.mp3"></audio>
+    <audio id="sound-jump-hermit" src="assets/audio/prog_hermit.mp3"></audio>
+    <audio id="sound-jump-scvern" src="assets/audio/prugok_scvern.mp3"></audio>
+    <audio id="sound-death-scvern" src="assets/audio/smert.mp3"></audio>
+    <audio id="sound-sword" src="assets/audio/sword.mp3"></audio>
+    <audio id="sound-attack-scvern" src="assets/audio/attaka_scvern.mp3"></audio>
+    <audio id="sound-death-hermit" src="assets/audio/smher.mp3" preload="auto"></audio>
+    <audio id="sound-see-hermit" src="assets/audio/ckv_see.mp3"></audio>
+    <audio id="sound-death-screen" src="assets/audio/ecran.mp3"></audio>
+    <audio id="sound-birthday" src="assets/audio/zvuk_apl.mp3" preload="auto"></audio>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="telegram.js"></script>

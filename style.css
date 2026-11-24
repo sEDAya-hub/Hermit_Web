@@ -823,3 +823,124 @@ body:has(#main-menu.active) .game-container {
     max-width: none;
     padding: 0;
 }
+
+/* Волшебные эффекты главного меню */
+#main-menu {
+    position: relative;
+    isolation: isolate;
+}
+
+#main-menu > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Слой светлячков */
+.fireflies {
+    position: absolute !important;
+    inset: 0;
+    z-index: 1 !important;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.firefly {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #dfff9b;
+    box-shadow: 0 0 8px 3px rgba(190, 255, 120, 0.7);
+    animation: firefly-move 7s ease-in-out infinite alternate,
+               firefly-glow 3s ease-in-out infinite;
+}
+
+@keyframes firefly-move {
+    from { transform: translate(0, 0); }
+    to { transform: translate(45px, -65px); }
+}
+
+@keyframes firefly-glow {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+}
+
+/* Летающий цветок */
+.music-button {
+    position: absolute !important;
+    z-index: 5 !important;
+    right: 10%;
+    top: 42%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    animation: flower-float 3s ease-in-out infinite;
+}
+
+.music-button.is-hidden {
+    display: none;
+}
+
+@keyframes flower-float {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-22px) rotate(5deg); }
+}
+
+.flower-art {
+    position: relative;
+    display: block;
+    width: 76px;
+    height: 76px;
+    filter: drop-shadow(0 0 12px rgba(255, 220, 130, 0.8));
+}
+
+.petal {
+    position: absolute;
+    left: 27px;
+    top: 5px;
+    width: 22px;
+    height: 34px;
+    border-radius: 60% 60% 45% 45%;
+    transform-origin: 11px 33px;
+    background: linear-gradient(#fff4bd, #f5a9d4);
+}
+
+.p1 { transform: rotate(0deg); }
+.p2 { transform: rotate(60deg); }
+.p3 { transform: rotate(120deg); }
+.p4 { transform: rotate(180deg); }
+.p5 { transform: rotate(240deg); }
+.p6 { transform: rotate(300deg); }
+
+.flower-center {
+    position: absolute;
+    left: 31px;
+    top: 30px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffe88a;
+    box-shadow: 0 0 15px 5px #ffe88a;
+}
+
+.music-hint {
+    color: #fff4cf;
+    font-size: 14px;
+    text-shadow: 0 0 8px #000, 0 0 12px #ffe89a;
+    white-space: nowrap;
+}
+
+.music-button:hover .flower-art {
+    filter: drop-shadow(0 0 20px #fff1a8);
+}
+
+@media (max-width: 600px) {
+    .music-button {
+        right: 5%;
+        top: 65%;
+    }
+}

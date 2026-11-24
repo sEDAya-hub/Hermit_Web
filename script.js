@@ -1,37 +1,122 @@
 
 const screens = document.querySelectorAll(".screen");
 
-// Музыка главного меню
+
+// ===================================
+// МУЗЫКА
+// ===================================
+
 const menuMusic = document.getElementById("menu-music");
+const battleMusic = document.getElementById("battle-music");
+const musicButton = document.getElementById("music-button");
+
+// Звуковые эффекты
+const soundFire = document.getElementById("sound-fire");
+const soundJumpHermit = document.getElementById("sound-jump-hermit");
+const soundJumpScvern = document.getElementById("sound-jump-scvern");
+const soundDeathScvern = document.getElementById("sound-death-scvern");
+const soundSword = document.getElementById("sound-sword");
+const soundAttackScvern = document.getElementById("sound-attack-scvern");
+const soundDeathHermit = document.getElementById("sound-death-hermit");
+const soundSeeHermit = document.getElementById("sound-see-hermit");
+const soundDeathScreen = document.getElementById("sound-death-screen");
+const soundBirthday = document.getElementById("sound-birthday");
+
+soundDeathHermit.load();
+soundDeathScreen.load();
+
+// Проигрывание звуковых эффектов
+function playSound(sound) {
+
+    if (sound === soundDeathHermit || sound === soundDeathScreen) {
+        sound.currentTime = 0;
+        sound.play();
+        return;
+    }
+
+    const newSound = sound.cloneNode();
+    newSound.volume = sound.volume;
+
+    newSound.play().catch(error => {
+        console.log("Не удалось воспроизвести звук:", error);
+    });
+}
 
 menuMusic.volume = 0.18;
+battleMusic.volume = 0.18;
 
-// Запуск музыки
+// Музыка главного меню
 function playMenuMusic() {
-    menuMusic.play().catch(error => {
-        console.log("Музыка ждёт взаимодействия с пользователем.");
-    });
+    battleMusic.pause();
+    battleMusic.currentTime = 0;
 
-    // Запуск музыки после первого взаимодействия с игрой
-document.addEventListener("pointerdown", () => {
-    if (document.getElementById("main-menu").classList.contains("active")) {
-        playMenuMusic();
-    }
-}, { once: true });
+    menuMusic.play()
+        .then(() => {
+            musicButton.classList.add("is-hidden");
+        })
+        .catch(() => {
+            musicButton.classList.remove("is-hidden");
+        });
 }
 
-function showScreen(screenId) {
-    screens.forEach(screen => {
-        screen.classList.remove("active");
-    });
+// Боевая музыка
+function playBattleMusic() {
+    menuMusic.pause();
+    menuMusic.currentTime = 0;
 
-    document.getElementById(screenId).classList.add("active");
-    if (screenId === "main-menu") {
-        playMenuMusic();
-    } else {
-        menuMusic.pause();
-    }
+    musicButton.classList.add("is-hidden");
+
+    battleMusic.play().catch(error => {
+        console.log("Не удалось запустить боевую музыку:", error);
+    });
 }
+
+// Цветочек включает музыку, если автозапуск заблокирован
+musicButton.addEventListener("click", playMenuMusic);
+
+// Пробуем включить музыку при входе
+playMenuMusic();
+
+
+// ===================================
+// СВЕТЛЯЧКИ
+// ===================================
+
+const firefliesContainer = document.getElementById("fireflies");
+
+for (let i = 0; i < 28; i++) {
+    const firefly = document.createElement("span");
+
+    firefly.classList.add("firefly");
+
+    firefly.style.left = Math.random() * 100 + "%";
+    firefly.style.top = Math.random() * 100 + "%";
+    firefly.style.animationDelay = Math.random() * 5 + "s";
+    firefly.style.animationDuration =
+        (4 + Math.random() * 6) + "s";
+
+    firefliesContainer.appendChild(firefly);
+}
+
+    // Переключение экранов
+    function showScreen(screenId) {
+        screens.forEach(screen => {
+            screen.classList.remove("active");
+        });
+
+        document.getElementById(screenId).classList.add("active");
+
+        if (screenId === "main-menu") {
+            playMenuMusic();
+        }
+        else if (screenId === "game-screen") {
+            playBattleMusic();
+        }
+        else {
+            menuMusic.pause();
+            battleMusic.pause();
+        }
+    }
 
 // Открытие меню паузы
 document.getElementById("pause-button").addEventListener("click", () => {
@@ -254,6 +339,7 @@ const houseKey = {
 
 // Состояние двери домика
 let houseUnlocked = false;
+let birthdayEndingShown = false;
 
 // ==================================
 // ВЫПАДЕНИЕ КЛЮЧА
@@ -268,6 +354,7 @@ function dropHouseKey(enemy) {
 
         houseKey.active = true;
         houseKey.collected = false;
+        houseKey.pickupDelay = 30; // полсекунды ключ просто лежит и светится, чтобы его было видно
     }
 }
 
@@ -357,15 +444,17 @@ function resetGame() {
 
     // Сбрасываем огненный шар
     fireball.active = false;
-}
 
     // Сбрасываем ключ и замок
     houseKey.x = 0;
     houseKey.y = 0;
     houseKey.active = false;
     houseKey.collected = false;
+    houseKey.pickupDelay = 0;
+    houseKey.hintTimer = 0;
 
     houseUnlocked = false;
+}
 
 
 // ==================================
@@ -556,13 +645,147 @@ function updateContinueButton() {
 // Проверяем сохранение при запуске
 updateContinueButton();
 
-// Показываем экран поражения
+
+ // Показываем экран поражения
 function showDeathScreen() {
 
     const deathScreen = document.getElementById("death-screen");
 
+    if (deathScreen.classList.contains("active")) return;
+
     deathScreen.classList.add("active");
 
+    soundDeathHermit.currentTime = 0;
+
+    playSound(soundDeathHermit);
+    playSound(soundDeathScreen);
+}
+
+
+// ==================================
+// ПРАЗДНИЧНЫЙ ФИНАЛ
+// ==================================
+
+function showBirthdayEnding() {
+
+    if (document.querySelector(".birthday-ending")) return;
+
+    const style = document.createElement("style");
+
+    style.textContent = `
+        @keyframes birthdayFloat {
+            from { transform: translateY(0) rotate(-8deg); }
+            to { transform: translateY(-120vh) rotate(8deg); }
+        }
+
+        @keyframes birthdayGlow {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+    `;
+
+    document.head.appendChild(style);
+
+    const ending = document.createElement("div");
+
+    ending.className = "birthday-ending";
+
+    ending.style.cssText = `
+        flex-direction: column;
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        background: radial-gradient(circle, #49336d, #17152f 75%);
+        font-family: Arial, sans-serif;
+    `;
+
+    const title = document.createElement("div");
+
+    title.innerHTML = "С ДНЁМ<br>РОЖДЕНИЯ!";
+
+    title.style.cssText = `
+        position: relative;
+        z-index: 10;
+        color: #ffe6a6;
+        font-size: clamp(32px, 7vw, 76px);
+        font-weight: bold;
+        text-align: center;
+        text-shadow: 0 0 15px #ff79c6, 3px 4px 0 #814a9c;
+        animation: birthdayGlow 2s infinite alternate;
+    `;
+
+    ending.appendChild(title);
+    const menuButton = document.createElement("button");
+
+    menuButton.textContent = "Выход в главное меню";
+
+    menuButton.style.cssText = `
+        position: relative;
+        z-index: 20;
+        margin-top: 28px;
+        padding: 14px 28px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #17152f;
+        background: #ffe6a6;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    `;
+
+    menuButton.addEventListener("click", async () => {
+        ending.remove();
+        soundBirthday.pause();
+        soundBirthday.currentTime = 0;
+        birthdayEndingShown = false;
+
+        if (document.fullscreenElement) {
+            try {
+                await document.exitFullscreen();
+            } catch (e) {}
+        }
+
+        resetGame();
+        showScreen("main-menu");
+    });
+
+    ending.appendChild(menuButton);
+
+    const colors = [
+        "#ff79b9", "#8d9dff", "#ffcf70",
+        "#b58aff", "#7ce4d0"
+    ];
+
+    colors.forEach((color, index) => {
+
+        const balloon = document.createElement("div");
+
+        balloon.style.cssText = `
+            position: absolute;
+            bottom: -150px;
+            left: ${8 + index * 19}%;
+            width: 65px;
+            height: 82px;
+            border-radius: 50%;
+            background: ${color};
+            box-shadow: inset -10px -8px 15px rgba(0,0,0,.15),
+                        inset 10px 8px 15px rgba(255,255,255,.3);
+            animation: birthdayFloat 9s ${index * 1.5}s linear infinite;
+        `;
+
+        ending.appendChild(balloon);
+    });
+
+    document.body.appendChild(ending);
+    soundBirthday.currentTime = 0;
+    soundBirthday.play();
+
+    birthdayEndingShown = true;
 }
 
 // Рисуем игровую сцену
@@ -1077,6 +1300,35 @@ function drawScene() {
         ctx.restore();
     }
 
+// ==================================
+    // НАДПИСЬ «Нажми ESC 2 раза лапочка!» НАД ХЕРМИТОМ
+    // ==================================
+
+    if (houseKey.hintTimer > 0) {
+        ctx.save();
+
+        const boxWidth = 210;
+        const boxHeight = 36;
+        const boxX = hermit.x + hermit.width / 2 - boxWidth / 2;
+        const boxY = hermit.y - 48;
+
+        // Тёмный фон таблички
+        ctx.fillStyle = "rgba(30, 20, 50, 0.92)";
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Золотая рамка
+        ctx.strokeStyle = "#ffe6a6";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Текст над головой
+        ctx.fillStyle = "#ffe6a6";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Нажми 2 раза ESC лапочка", hermit.x + hermit.width / 2, boxY + 23);
+
+        ctx.restore();
+    }
 
     // Возвращаем обычные экранные координаты для интерфейса
     ctx.restore();
@@ -1156,29 +1408,13 @@ drawScene();
 // Состояние клавиш
 const keys = {};
 
+
 // Нажатие клавиши
 document.addEventListener("keydown", function(event) {
 
     // Не принимаем управление после смерти
     if (hermit.health <= 0) {
         return;
-    }
-
-    // ==================================
-    // ПОДБОР КЛЮЧА
-    // ==================================
-
-    if (houseKey.active && !houseKey.collected) {
-
-        const touchingKey =
-            hermit.x + hermit.width > houseKey.x &&
-            hermit.x < houseKey.x + houseKey.width &&
-            hermit.y + hermit.height > houseKey.y &&
-            hermit.y < houseKey.y + houseKey.height;
-
-        if (touchingKey) {
-            houseKey.collected = true;
-        }
     }
 
     // Не принимаем игровые клавиши при открытом инвентаре
@@ -1192,26 +1428,14 @@ document.addEventListener("keydown", function(event) {
     // ОТКРЫТИЕ ДВЕРИ ДОМИКА
     // ==================================
 
-    if (event.code === "KeyE" && !event.repeat) {
-
-        const distanceToHouse = Math.abs(
-            (hermit.x + hermit.width / 2) - (houseX + 95)
-        );
-
-        if (
-            distanceToHouse < 120 &&
-            houseKey.collected &&
-            scourgesDefeated === totalScourges
-        ) {
-            houseUnlocked = true;
-        }
-    }
 
     // Прыжок
     if (
         (event.code === "Space" || event.code === "ArrowUp")
         && hermit.onGround
     ) {
+        playSound(soundJumpHermit);
+
         hermit.velocityY = hermit.jumpPower;
         hermit.onGround = false;
     }
@@ -1219,10 +1443,11 @@ document.addEventListener("keydown", function(event) {
     // Атака мечом
     if (event.code === "KeyJ" && !hermit.isAttacking) {
 
-    hermit.isAttacking = true;
-    hermit.attackTimer = 12;
-    hermit.hasHit = false;
+        playSound(soundSword);
 
+        hermit.isAttacking = true;
+        hermit.attackTimer = 12;
+        hermit.hasHit = false;
     }
 
     // Магическая атака — огненный шар
@@ -1232,42 +1457,35 @@ document.addEventListener("keydown", function(event) {
         !fireball.active &&
         hermit.mana >= 10
     ) {
+        playSound(soundFire);
 
         hermit.mana -= 10;
-        // Задержка восстановления маны — 2 секунды
         hermit.manaRegenDelay = 120;
-
         fireball.active = true;
-
         fireball.y = hermit.y + 35;
 
         if (hermit.facing === "right") {
-
             fireball.x = hermit.x + hermit.width;
             fireball.direction = 1;
-
         } else {
-
             fireball.x = hermit.x;
             fireball.direction = -1;
-
         }
     }
 
-    // ИСПОЛЬЗОВАНИЕ ЗЕЛЬЯ
-        if (event.code === "KeyH" && !event.repeat) {
-            if (hermit.health < hermit.maxHealth && hermit.healthPotions > 0) {
-                hermit.health += 30;
+    // Использование зелья
+    if (event.code === "KeyH" && !event.repeat) {
+        if (hermit.health < hermit.maxHealth && hermit.healthPotions > 0) {
+            hermit.health += 30;
 
-                if (hermit.health > hermit.maxHealth) {
+            if (hermit.health > hermit.maxHealth) {
                 hermit.health = hermit.maxHealth;
-                }
-
-                hermit.healthPotions--;
-
-                updatePotionCount();
             }
+
+            hermit.healthPotions--;
+            updatePotionCount();
         }
+    }
 
     // Запрещаем браузеру прокручивать страницу
     if (
@@ -1278,6 +1496,7 @@ document.addEventListener("keydown", function(event) {
     }
 
 });
+
 
 // Отпускание клавиши
 document.addEventListener("keyup", function(event) {
@@ -1290,8 +1509,42 @@ document.addEventListener("keyup", function(event) {
 // Обновление игровой логики
 function update() {
 
+    // Проверяем смерть Хермита
+    if (hermit.health <= 0) {
+        hermit.health = 0;
+        showDeathScreen();
+        return;
+    }
+
     // Не обновляем игровой мир, пока открыт инвентарь
     if (inventoryOpen) return;
+
+    // ==================================
+    // ПОДБОР КЛЮЧА
+    // ==================================
+
+    if (houseKey.active && !houseKey.collected) {
+
+        if (houseKey.pickupDelay > 0) {
+            houseKey.pickupDelay--;
+        } else {
+            const touchingKey =
+                hermit.x + hermit.width > houseKey.x &&
+                hermit.x < houseKey.x + houseKey.width &&
+                hermit.y + hermit.height > houseKey.y &&
+                hermit.y < houseKey.y + houseKey.height;
+
+            if (touchingKey) {
+                houseKey.collected = true;
+                houseKey.hintTimer = 360; // надпись будет висеть над Хермитом 6 секунды
+            }
+        }
+    }
+
+    if (houseKey.hintTimer > 0) {
+        houseKey.hintTimer--;
+    }
+
 
     // ==================================
     // ДВИЖЕНИЕ ХЕРМИТА
@@ -1562,8 +1815,9 @@ function update() {
         const absDistance = Math.abs(distance);
 
         // Скверна замечает Хермита
-        if (absDistance < 180) {
+        if (absDistance < 180 && !enemy.alert) {
             enemy.alert = true;
+            playSound(soundSeeHermit);
         }
 
         // Преследование Хермита
@@ -1590,6 +1844,8 @@ function update() {
             });
 
             if (obstacleAhead && enemy.onGround) {
+                playSound(soundJumpScvern);
+
                 enemy.velocityY = enemy.jumpPower;
                 enemy.onGround = false;
             }
@@ -1606,6 +1862,8 @@ function update() {
             enemy.attackCooldown <= 0 &&
             enemy.tongueTimer === 0
         ) {
+            playSound(soundAttackScvern);
+
             enemy.tongueTimer = 1;
             enemy.tongueHit = false;
             enemy.attackCooldown = 100;
@@ -1829,14 +2087,25 @@ closeInventoryButton.addEventListener("click", () => {
 
 });
 
-// Закрытие клавишей Escape
+// Закрытие инвентаря или открытие финала по Escape
 document.addEventListener("keydown", (event) => {
 
-    if (event.code === "Escape" && inventoryOpen) {
+    if (event.code === "Escape" && !event.repeat) {
 
-        inventoryOpen = false;
-        inventoryScreen.classList.remove("active");
+        if (inventoryOpen) {
+            inventoryOpen = false;
+            inventoryScreen.classList.remove("active");
+            return;
+        }
 
+        if (
+            houseKey.collected &&
+            scourgesDefeated >= totalScourges &&
+            !birthdayEndingShown
+        ) {
+            houseUnlocked = true;
+            showBirthdayEnding();
+        }
     }
 
 });
